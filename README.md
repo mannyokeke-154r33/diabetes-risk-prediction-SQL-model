@@ -1,53 +1,105 @@
 # Hospital Readmission & FHIR Readiness Audit
 
-An educational healthcare SQL project using the Kaggle Diabetes 130-US Hospitals dataset.
+An educational healthcare data-engineering project using Python, pandas, SQLite, and SQL to analyze hospital readmission patterns and assess encounter-record completeness.
 
 ## Project question
 
-Which encounter characteristics are associated with hospital readmission, and how complete are those encounter records for downstream healthcare-data conversion?
-
-## Scope
-
-- Load the Kaggle CSV into SQLite.
-- Profile missing values, placeholder values, duplicates, and identifier uniqueness.
-- Use SQL filtering, `CASE`, aggregation, subqueries, and optional window functions.
-- Compare readmission categories across encounter characteristics.
-- Create a project-defined conversion-readiness score.
-- Document findings without presenting them as clinical advice or a predictive model.
+Which encounter characteristics are associated with readmission, and how complete are those encounter records for downstream healthcare-data conversion?
 
 ## Dataset
 
-Download the data from Kaggle:
+Source: [Diabetes 130-US Hospitals dataset on Kaggle](https://www.kaggle.com/datasets/brandao/diabetes)
 
-<https://www.kaggle.com/datasets/brandao/diabetes>
+The dataset contains 101,766 historical encounter records from 130 U.S. hospitals covering 1999–2008. The raw files are not committed to this repository.
 
-The dataset is historical encounter data from 130 U.S. hospitals covering 1999–2008. The source data is not included in this repository.
+Expected local source path:
 
-Expected source files after extraction:
+```text
+data/raw/archive/diabetic_data.csv
+```
 
-- `diabetic_data.csv`
-- `IDS_mapping.csv`
+## Workflow
 
-## Repository status
+1. Load and inspect the raw CSV with pandas.
+2. Convert `?` placeholders into missing values.
+3. Load the encounter data into SQLite.
+4. Run eight SQL analyses using filtering, `CASE`, CTEs, conditional aggregation, subqueries, and percentage calculations.
+5. Evaluate a project-defined conversion-readiness score.
 
-This repository is being built in stages. The first stage is dataset acquisition and manual schema inspection.
+## Key findings
 
-## Planned structure
+### Readmission distribution
+
+| Readmission label | Encounters | Percentage |
+|---|---:|---:|
+| No readmission | 54,864 | 53.91% |
+| Readmitted after 30 days | 35,545 | 34.93% |
+| Readmitted within 30 days | 11,357 | 11.16% |
+
+These are encounter-level percentages, not unique-patient readmission rates.
+
+### Observed associations
+
+- The 70+ age group had the highest `<30` readmission percentage at **11.85%**.
+- Encounters lasting 7–10 days had the highest `<30` readmission percentage at **13.63%**.
+- Encounters with 4+ prior inpatient visits had a `<30` readmission percentage of **30.70%**, compared with **8.44%** for encounters with no prior inpatient visits.
+- Encounters where A1C was not measured had an `<30` readmission percentage of **11.42%**, compared with **9.66%** for the `Norm` category.
+
+These comparisons are descriptive associations. They do not establish causation or clinical risk.
+
+### Data-quality and readiness findings
+
+- The dataset contains **0 fully duplicated rows**.
+- All **101,766 encounter IDs are distinct**.
+- `medical_specialty` is missing in **49.08%** of rows.
+- `payer_code` is missing in **39.56%** of rows.
+- `diag_1` is missing in **0.02%** of rows.
+- Under the project-defined readiness rule, **99.98%** of encounters were classified as `Ready` and **0.02%** as `Review`.
+- No encounters were classified as `Blocked`.
+
+The readiness score is an educational project metric, not formal FHIR certification. Specialty and payer fields are treated as optional enrichment fields rather than automatic conversion blockers.
+
+## Repository structure
 
 ```text
 SQL Project Two/
 ├── data/
 │   ├── raw/          # local Kaggle files; ignored by Git
-│   └── processed/    # generated files; ignored by Git
+│   └── processed/    # generated SQLite database; ignored by Git
 ├── outputs/          # generated summaries; ignored by Git
 ├── sql/
+│   └── analysis.sql
 ├── src/
+│   ├── inspect_data.py
+│   └── load_database.py
 ├── tests/
 └── README.md
 ```
 
+## Run locally
+
+From the project root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python src/inspect_data.py
+python src/load_database.py
+sqlite3 "data/processed/hospital_readmissions.sqlite" < "sql/analysis.sql"
+```
+
 ## Limitations
 
-- The data is historical, not a current 2026 hospital performance report.
-- The analysis is descriptive and educational; it does not establish causation or clinical risk.
-- Any readiness score will be explicitly defined by this project and is not a formal FHIR certification.
+- The dataset is historical and should not be presented as a current 2026 hospital-performance report.
+- Multiple rows may belong to the same patient, so encounter-level findings are not patient-level estimates.
+- The analysis is descriptive and educational; it is not a clinical decision-support system.
+- The readiness score is project-defined and does not replace formal FHIR validation.
+
+## Future improvements
+
+- Add explicit SQLite schema documentation and data dictionary notes.
+- Export each query result to a reproducible output file.
+- Add automated data-contract tests.
+- Map coded admission and discharge fields using the source documentation.
+- Add formal FHIR resource fixtures and validation.

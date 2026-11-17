@@ -1,23 +1,35 @@
-"""Stage 1 exercise: inspect the raw Kaggle encounter file."""
-
 from pathlib import Path
 
 import pandas as pd
 
 
-DATA_PATH = Path("data/raw/diabetic_data.csv")
-
+DATA_PATH = Path("data/raw/archive/diabetic_data.csv")
 
 def main() -> None:
-    # TODO 1: Load DATA_PATH into a pandas DataFrame named df.
-    # Hint: pd.read_csv(DATA_PATH)
-    pass
+    df = pd.read_csv(
+        DATA_PATH,
+        na_values=["?"],
+        dtype={"payer_code": "string"},
+        low_memory=False,
+    )
 
-    # TODO 2: Print the number of rows and columns.
-    # TODO 3: Print the column names.
-    # TODO 4: Print the five columns with the most missing values.
-    # TODO 5: Print the number of fully duplicated rows.
 
+    print("Shape:", df.shape)
+
+    print("\nColumns:")
+    print(df.columns.tolist())
+
+    print("\nTop 5 missing columns:")
+    print(df.isna().sum().sort_values(ascending=False).head(5))
+
+    print("\nDuplicate rows:")
+    print(df.duplicated().sum())
+
+    print("\nReadmission labels:")
+    print(df["readmitted"].value_counts(dropna=False))
+
+    print("\nData type counts:")
+    print(df.dtypes.value_counts())
 
 if __name__ == "__main__":
     main()
