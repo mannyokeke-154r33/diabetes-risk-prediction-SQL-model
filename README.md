@@ -1,105 +1,121 @@
-# Hospital Readmission & FHIR Readiness Audit
+# SQL-to-Model Diabetes Risk Prediction System
 
-An educational healthcare data-engineering project using Python, pandas, SQLite, and SQL to analyze hospital readmission patterns and assess encounter-record completeness.
-
-## Project question
-
-Which encounter characteristics are associated with readmission, and how complete are those encounter records for downstream healthcare-data conversion?
+An educational healthcare data project that combines SQL analysis with a transparent diabetes-risk classifier written from scratch in NumPy.
 
 ## Dataset
 
-Source: [Diabetes 130-US Hospitals dataset on Kaggle](https://www.kaggle.com/datasets/brandao/diabetes)
+Source: [Diabetes Risk Prediction Dataset on Kaggle](https://www.kaggle.com/datasets/srisyra02/diabetes-risk-prediction-dataset)
 
-The dataset contains 101,766 historical encounter records from 130 U.S. hospitals covering 1999–2008. The raw files are not committed to this repository.
+The dataset contains approximately 50,000 synthetic patient records and 42 columns covering demographics, metabolic markers, lifestyle, comorbidities, and risk labels.
 
-Expected local source path:
+Place the downloaded file here:
 
-```text
-data/raw/archive/diabetic_data.csv
-```
+~~~text
+data/raw/diabetes_risk/diabetes_risk_prediction_dataset.csv
+~~~
+
+## Reference implementation
+
+The model structure is based on this from-scratch logistic-regression example:
+
+<https://github.com/amitshekhariitbhu/build-your-own-x-machine-learning/blob/main/tutorials/miscellaneous-applications/diabetes-prediction-system/diabetes_prediction_system.py>
+
+This project adapts that idea to a newer Kaggle dataset using SQL staging, data-quality analysis, median imputation, feature standardization, gradient descent, and classification metrics.
+
+## Project question
+
+Can a SQL-backed pipeline use routine health indicators to classify high diabetes-risk records while making leakage and data-quality decisions explicit?
+
+## Target definition
+
+The source target is Diabetes_Risk. For this educational binary model:
+
+- High becomes 1
+- Low or Moderate becomes 0
+
+This is a project-defined classification target, not a diagnosis.
+
+## Leakage controls
+
+The model excludes fields that appear to be derived from the target or downstream recommendations:
+
+- Diabetes_Risk_Score
+- AI_Health_Recommendation
+- Doctor_Consultation_Needed
+- BMI_CATEGORY
+- Diabetes_Risk
 
 ## Workflow
 
-1. Load and inspect the raw CSV with pandas.
-2. Convert `?` placeholders into missing values.
-3. Load the encounter data into SQLite.
-4. Run eight SQL analyses using filtering, `CASE`, CTEs, conditional aggregation, subqueries, and percentage calculations.
-5. Evaluate a project-defined conversion-readiness score.
+1. Inspect the raw CSV with pandas.
+2. Stage the raw records in SQLite.
+3. Use SQL to analyze target balance, missingness, risk bands, and comorbidity patterns.
+4. Impute numeric missing values using training-set medians only.
+5. Standardize features using training-set statistics only.
+6. Train logistic regression from scratch with NumPy gradient descent.
+7. Compare the model with a majority-class baseline using accuracy, precision, recall, and F1.
 
-## Key findings
+## Results
 
-### Readmission distribution
+### SQL findings
 
-| Readmission label | Encounters | Percentage |
-|---|---:|---:|
-| No readmission | 54,864 | 53.91% |
-| Readmitted after 30 days | 35,545 | 34.93% |
-| Readmitted within 30 days | 11,357 | 11.16% |
+- High-risk records represented 73.19% of the dataset.
+- High-risk prevalence increased from 63.23% for BMI below 25 to 80.54% for BMI of 30 or higher.
+- High-risk prevalence increased from 57.81% among patients younger than 30 to 82.95% among patients aged 60 or older.
+- Patients with a family history of diabetes had an 82.91% high-risk rate, compared with 63.52% for patients without one.
+- The dataset contained no duplicate or null Patient_ID values.
 
-These are encounter-level percentages, not unique-patient readmission rates.
+### Model findings
 
-### Observed associations
+The model used 40,001 training records and 9,999 test records.
 
-- The 70+ age group had the highest `<30` readmission percentage at **11.85%**.
-- Encounters lasting 7–10 days had the highest `<30` readmission percentage at **13.63%**.
-- Encounters with 4+ prior inpatient visits had a `<30` readmission percentage of **30.70%**, compared with **8.44%** for encounters with no prior inpatient visits.
-- Encounters where A1C was not measured had an `<30` readmission percentage of **11.42%**, compared with **9.66%** for the `Norm` category.
+| Metric | Result |
+|---|---:|
+| Majority baseline accuracy | 73.2% |
+| Model accuracy | 83.0% |
+| Precision | 85.5% |
+| Recall | 92.4% |
+| F1 score | 88.8% |
 
-These comparisons are descriptive associations. They do not establish causation or clinical risk.
+The model improved accuracy over the majority-class baseline. Since the target is imbalanced, F1, precision, and recall are reported alongside accuracy.
 
-### Data-quality and readiness findings
+These findings are educational associations from a synthetic dataset. They should not be interpreted as clinical evidence or used for diagnosis.
 
-- The dataset contains **0 fully duplicated rows**.
-- All **101,766 encounter IDs are distinct**.
-- `medical_specialty` is missing in **49.08%** of rows.
-- `payer_code` is missing in **39.56%** of rows.
-- `diag_1` is missing in **0.02%** of rows.
-- Under the project-defined readiness rule, **99.98%** of encounters were classified as `Ready` and **0.02%** as `Review`.
-- No encounters were classified as `Blocked`.
+## Assistant collaboration model
 
-The readiness score is an educational project metric, not formal FHIR certification. Specialty and payer fields are treated as optional enrichment fields rather than automatic conversion blockers.
+This is a guided vibe-coding project. The assistant helps by:
 
-## Repository structure
+- Improving the user's project scope and repository structure.
+- Reviewing user's code and query output.
+- Diagnosing errors and explaining the underlying cause.
+- Checking for data leakage, reproducibility problems, and misleading healthcare claims.
 
-```text
-SQL Project Two/
-├── data/
-│   ├── raw/          # local Kaggle files; ignored by Git
-│   └── processed/    # generated SQLite database; ignored by Git
-├── outputs/          # generated summaries; ignored by Git
-├── sql/
-│   └── analysis.sql
-├── src/
-│   ├── inspect_data.py
-│   └── load_database.py
-├── tests/
-└── README.md
-```
+You own the hands-on learning work. You are expected to:
+
+- Download and inspect the dataset.
+- Complete the SQL TODOs.
+- Type the Python code.
+- Run the pipeline and interpret the output.
+- Make and verify Git commits.
+- Decide how to communicate the project.
+
+The working loop is:
+1. Explain
+2. Implement
+3. Run
+4. Review
+5. Improve.
+
+## Limitation
+
+The dataset is synthetic and the model is educational. It is not a diagnostic tool, clinical decision-support system, or production healthcare application. Its intended use is limited to academic and research purposes.
 
 ## Run locally
 
-From the project root:
-
-```bash
-python3 -m venv .venv
+~~~bash
 source .venv/bin/activate
-python -m pip install -r requirements.txt
 python src/inspect_data.py
 python src/load_database.py
-sqlite3 "data/processed/hospital_readmissions.sqlite" < "sql/analysis.sql"
-```
-
-## Limitations
-
-- The dataset is historical and should not be presented as a current 2026 hospital-performance report.
-- Multiple rows may belong to the same patient, so encounter-level findings are not patient-level estimates.
-- The analysis is descriptive and educational; it is not a clinical decision-support system.
-- The readiness score is project-defined and does not replace formal FHIR validation.
-
-## Future improvements
-
-- Add explicit SQLite schema documentation and data dictionary notes.
-- Export each query result to a reproducible output file.
-- Add automated data-contract tests.
-- Map coded admission and discharge fields using the source documentation.
-- Add formal FHIR resource fixtures and validation.
+sqlite3 "data/processed/diabetes_risk/diabetes_risk.sqlite" < "sql/analysis.sql"
+python src/diabetes_prediction_system.py
+~~~
